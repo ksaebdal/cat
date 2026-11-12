@@ -113,6 +113,7 @@
   .feedback { min-height: 1.5rem; font-weight: 600; }
   .feedback.ok { color: var(--ok); }
   .feedback.bad { color: var(--bad); }
+  .feedback.warm { color: var(--gold); }
   .shake { animation: shake .45s ease; }
   @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
 
@@ -336,6 +337,25 @@
     .laugh-emoji, .fly-away { animation: none; }
   }
 
+  /* Cat gallery with podium (reveal slide) */
+  .cat-stage { background: rgba(27,23,64,.8); border: 3px solid #2a1630; border-radius: 16px; padding: .8rem .6rem 1rem; width: min(94vw, 34rem); display: flex; flex-direction: column; align-items: center; gap: .6rem; }
+  .cat-stage h2 { font-family: var(--display); font-weight: 900; font-size: 1.3rem; color: #ffd86b; }
+  .podium { display: flex; align-items: flex-end; justify-content: center; gap: 4px; width: 100%; }
+  .pod { display: flex; flex-direction: column; align-items: center; width: clamp(86px, 28vw, 120px); }
+  .pod .cat { width: 100%; margin-bottom: -10px; position: relative; z-index: 1; cursor: pointer; }
+  .pod.p1 .cat { filter: drop-shadow(0 0 8px rgba(255,214,90,.85)); }
+  .pod .block { width: 100%; border: 3px solid #2a1630; border-radius: 8px 8px 0 0; display: flex; justify-content: center; padding-top: .15rem; font-family: var(--display); box-shadow: inset 0 -8px 0 rgba(0,0,0,.18); }
+  .pod .block b { font-size: 1.5rem; color: #2a1630; line-height: 1.2; }
+  .pod.p1 .block { height: 84px; background: linear-gradient(#ffe27a, #e0a82e); }
+  .pod.p2 .block { height: 60px; background: linear-gradient(#e9eef5, #aab4c4); }
+  .pod.p3 .block { height: 44px; background: linear-gradient(#f0b27a, #b9743a); }
+  .pod .nm { margin-top: .3rem; font-weight: 800; font-size: .85rem; color: #fff1d6; background: #14233f; border: 2px solid #2a1630; border-radius: 8px; padding: .05rem .55rem; }
+  .pod .nm.gold { color: #2a1630; background: #ffd86b; border-color: #8a5f12; }
+  .crowd-cats { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: .4rem .6rem; }
+  .crowd-cats .cat { width: clamp(50px, 15vw, 66px); cursor: pointer; }
+  .crowd-cats .gmouse { width: 34px; height: auto; }
+  .cat-stage .cat.hopping { animation: hop .45s ease; }
+
   /* Congratulations slide */
   .confetti-rain { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
   .confetti-rain i { position: absolute; top: -24px; border-radius: 2px; opacity: .9; animation: confall linear infinite; }
@@ -496,6 +516,21 @@
   #runner { position: absolute; top: 4px; left: -90px; width: 88px; height: 52px; padding: 0; border: 0; background: none; pointer-events: auto; animation: dash 9s linear infinite; }
   #runner svg { width: 100%; height: 100%; display: block; overflow: visible; }
   #runner:hover, #runner:focus-visible { animation-play-state: paused; }
+  #runner .mouse { position: absolute; left: calc(100% + 18px); top: 20px; width: 36px; height: 22px; animation: mousedart 1.1s ease-in-out infinite alternate; }
+  @keyframes mousedart { from { transform: translateX(0); } to { transform: translateX(14px); } }
+  .mouse .mleg { transform-box: fill-box; transform-origin: 50% 0%; animation: mlegs .12s ease-in-out infinite alternate; }
+  .mouse .mleg.b { animation-direction: alternate-reverse; }
+  @keyframes mlegs { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
+  .mouse .mtail { transform-box: fill-box; transform-origin: 100% 100%; animation: mtail .3s ease-in-out infinite alternate; }
+  @keyframes mtail { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+  #runner:hover .mouse, #runner:focus-visible .mouse, #runner:hover .mouse *, #runner.held .mouse, #runner.held .mouse * { animation-play-state: paused; }
+  @media (hover: none) { #runner:hover .mouse, #runner:hover .mouse * { animation-play-state: running; } }
+  #runner .mouse.fleeing { animation: mouseflee .7s cubic-bezier(.55, 0, 1, .6) forwards !important; pointer-events: none; }
+  .mouse.fleeing .mleg { animation-duration: .05s !important; }
+  #runner .mouse.returning { animation: mousepop .5s ease both, mousedart 1.1s ease-in-out .5s infinite alternate; }
+  @keyframes mouseflee { 0% { transform: translateX(0) scaleX(1); } 12% { transform: translateX(-7px) scaleX(.88); } 100% { transform: translateX(var(--flee, 600px)); } }
+  @keyframes mousepop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { #runner .mouse.fleeing { animation: none !important; opacity: 0; } }
   @keyframes dash { from { left: -90px; } to { left: 100%; } }
   .rc-body { animation: rcbounce .3s ease-in-out infinite alternate; }
   @keyframes rcbounce { from { transform: translateY(0); } to { transform: translateY(-3px); } }
@@ -506,6 +541,7 @@
   @keyframes rctail { from { transform: rotate(-10deg); } to { transform: rotate(12deg); } }
   @media (prefers-reduced-motion: reduce) {
     #runner { animation: none; left: .75rem; }
+    #runner .mouse, .mouse .mleg, .mouse .mtail { animation: none; }
     .rc-body, .rc-leg, .rc-tail { animation: none; }
   }
 
@@ -798,6 +834,11 @@
         o.connect(g); g.connect(sfxBus);
         o.start(t); lfo.start(t); o.stop(t + 0.95); lfo.stop(t + 0.95);
       },
+      squeak: function () {
+        if (!ok()) return;
+        var t = T();
+        [0, 0.13].forEach(function (d) { blip(1700, t + d, 0.1, "sine", 0.16, 2700); });
+      },
       swipe: function () { if (!ok()) return; noise(T(), 0.28, "bandpass", 400, 2200, 0.05, 1.2); },
       level: function (n) {
         if (!ok()) return;
@@ -860,7 +901,7 @@
       if (k === "congrats") { fx.win(); later(500, fx.cheer); }
       if (k === "reveal") {
         fx.reveal();
-        later(500, fx.curtain); later(2000, fx.ding); later(3050, fx.thud); later(3450, fx.thud); later(3900, fx.ding); later(5100, fx.stamp);
+        later(500, fx.curtain); later(2000, fx.ding); later(3050, fx.thud); later(3450, fx.thud); later(3900, fx.ding); later(5100, fx.stamp); later(6500, fx.win);
       }
     }
 
@@ -943,6 +984,7 @@
         '<g stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".9">' +
           '<path d="M70 94 L40 88 M70 100 L42 104 M130 94 L160 88 M130 100 L158 104"/>' +
         '</g>' +
+        (opts.crown ? '<path d="M76 52 L80 24 L92 40 L100 18 L108 40 L120 24 L124 52 Z" fill="#ffd24d" stroke="#b8861b" stroke-width="2.5" stroke-linejoin="round"/><circle cx="80" cy="24" r="3.5" fill="#e0443e"/><circle cx="100" cy="18" r="3.5" fill="#3b82f6"/><circle cx="120" cy="24" r="3.5" fill="#e0443e"/>' : '') +
       '</g>' +
     '</svg>';
   }
@@ -1025,9 +1067,10 @@
           if (cfg.special) {
             for (var si = 0; si < cfg.special.length; si++) {
               if (cfg.special[si].match.indexOf(v) !== -1) {
-                fb.className = "feedback bad"; fb.textContent = "Inte riktigt. Försök igen!";
+                fb.className = cfg.special[si].feedback ? "feedback warm" : "feedback bad";
+                fb.textContent = cfg.special[si].feedback || "Inte riktigt. Försök igen!";
                 row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake");
-                laughAt(cfg.special[si].emoji, cfg.special[si].text);
+                laughAt(cfg.special[si].emoji, cfg.special[si].text, cfg.special[si].sound);
                 input.focus();
                 return;
               }
@@ -1041,7 +1084,15 @@
           } else {
             fb.className = "feedback bad"; fb.textContent = "Inte riktigt. Försök igen!";
             if (wrongEl) { wrongs++; wrongEl.querySelector("b").textContent = wrongs; wrongEl.classList.remove("bump"); void wrongEl.offsetWidth; wrongEl.classList.add("bump");
-              if (cfg.encourage && wrongs % 3 === 0) laughAt(cfg.encourage.emoji, cfg.encourage.text, "hmm"); }
+              if (cfg.encourage && wrongs % 3 === 0) {
+                var enc = cfg.encourage;
+                var item = wrongs === 3 ? enc.third : enc.hype[(wrongs / 3 - 2) % enc.hype.length];
+                laughAt(item.emoji, item.text, item.sound);
+              } }
+            if (cfg.autofill && wrongs >= 10) {
+              input.value = cfg.autofill;
+              fb.className = "feedback ok"; fb.textContent = "H\u00e4r \u00e4r svaret! Tryck p\u00e5 Svara.";
+            }
             row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake");
             Sfx.wrong();
             input.focus();
@@ -1143,11 +1194,18 @@
 
   // 4. Vossa fall
   slides.push(questionSlide({
-    question: "Vi börjar enkelt, Vossa fall?",
+    question: "Vi börjar enkelt, Vossafall?",
     answers: ["tvindefossen"],
     countWrong: true,
-    encourage: { emoji: "🤔", text: "Inte så enkelt ändå… men du klarar det!" },
-    hints: ["Vattendrag"],
+    autofill: "Tvindefossen",
+    encourage: {
+      third: { emoji: "🤔", text: "Inte så enkelt ändå… men du klarar det!", sound: "hmm" },
+      hype: [
+        { emoji: "💪", text: "KOM IGEN NU! DU FIXAR DET HÄR!", sound: "cheer" },
+        { emoji: "🚀", text: "DU ÄR EN SUPERSTJÄRNA! NU TAR DU DET!", sound: "cheer" }
+      ]
+    },
+    hints: ["Vattendrag", "Börjar på…", "T"],
     cat: { fur: "#f1e4d0", dark: "#a98b66", belly: "#ffffff" }
   }));
 
@@ -1240,7 +1298,11 @@
   slides.push(questionSlide({
     question: "Vad är TV4 Plays bästa program? (internationell titel)",
     answers: ["australian survivor"],
-    hints: ["David", "George", "Shonee", "Brooke", "Luke", "Hayley", "Hayley", "David"],
+    special: [
+      { match: ["robinson"], emoji: "🎯", text: "Bra gissat! Det var nära.", feedback: "Bra gissat! Det var nära. 🎯", sound: "hint" },
+      { match: ["robinson australien", "robinson australia"], emoji: "😮", text: "Oj oj oj!! Bra gissat. Läs frågan igen!", feedback: "Oj oj oj!! Bra gissat. Läs frågan igen! 😮", sound: "boing" }
+    ],
+    hints: ["David", "George", "Shonee", "Brooke", "Luke", "Hayley"],
     cat: { fur: "#e8913a", dark: "#b8661c", belly: "#fff3e0" }
   }));
 
@@ -1256,7 +1318,7 @@
   slides.push(questionSlide({
     question: "Kate and ...",
     answers: ["mary"],
-    hints: ["not harry"],
+    hints: ["Inte Harry men…", "Startar med M"],
     cat: { fur: "#9bb7d4", dark: "#4f6d8f", belly: "#eef5fb" }
   }));
 
@@ -1727,6 +1789,36 @@
     '</svg>';
   }
 
+  // All the cats from the presentation: a podium with Christina (crown), Kate and Mary, and everyone else around it
+  function catStageHTML() {
+    var christina = { fur: "#e8913a", dark: "#b8661c", belly: "#fff3e0", crown: true };
+    var kate = { fur: "#9bb7d4", dark: "#4f6d8f", belly: "#eef5fb" };
+    var mary = { fur: "#b8a1e3", dark: "#6a4fa3", belly: "#f4eeff" };
+    var others = [
+      { fur: "#8d99ae", dark: "#4a5568", belly: "#edf2f4" },
+      { fur: "#2d2d34", dark: "#111118", belly: "#55555f" },
+      { fur: "#f1e4d0", dark: "#a98b66", belly: "#ffffff" },
+      { fur: "#c9d6df", dark: "#52616b", belly: "#ffffff" },
+      { fur: "#d9a066", dark: "#8a5a2b", belly: "#fff1dd" },
+      { fur: "#ff9f1c", dark: "#c26d00", belly: "#fff3e0", funny: true }
+    ];
+    function pod(cls, num, name, style, d, gold) {
+      return '<div class="pod ' + cls + ' rv" style="--d:' + d + 's">' + catSVG(style) +
+        '<div class="block"><b>' + num + '</b></div><span class="nm' + (gold ? ' gold' : '') + '">' + name + '</span></div>';
+    }
+    var crowd = others.map(function (o) { return catSVG(o); }).join("");
+    var mouse = '<svg class="gmouse" viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg" aria-label="Mus">' +
+      '<path d="M10 22 C 2 22, 0 10, 6 6" fill="none" stroke="#e8a0b0" stroke-width="2.6" stroke-linecap="round"/>' +
+      '<ellipse cx="22" cy="31" rx="4.5" ry="3" fill="#7d8798"/><ellipse cx="38" cy="31" rx="4.5" ry="3" fill="#7d8798"/>' +
+      '<ellipse cx="29" cy="22" rx="20" ry="11" fill="#a9b3c2" stroke="#5c6575" stroke-width="2"/>' +
+      '<circle cx="46" cy="14" r="8.5" fill="#a9b3c2" stroke="#5c6575" stroke-width="2"/>' +
+      '<circle cx="42" cy="7" r="5" fill="#f6a5b4" stroke="#5c6575" stroke-width="1.8"/>' +
+      '<circle cx="48.5" cy="12.5" r="1.8" fill="#111"/><circle cx="54" cy="15" r="1.7" fill="#e87a95"/></svg>';
+    return '<div class="cat-stage rv" style="--d:5s"><h2>Alla katter som varit med</h2>' +
+      '<div class="podium">' + pod("p2", 2, "Kate", kate, 5.7) + pod("p1", 1, "Christina", christina, 6.2, true) + pod("p3", 3, "Mary", mary, 5.4) + '</div>' +
+      '<div class="crowd-cats">' + crowd + mouse + '</div></div>';
+  }
+
   function ticketHTML(n, rot, delay) {
     return '<div class="ticket" style="--r:' + rot + 'deg;--d:' + delay + 's">' +
       '<div class="tk-main">' +
@@ -1754,8 +1846,14 @@
         '<p>En mysig kvartersbio i Aspudden med en enda salong och 81 platser, och med bevarad inredning från 1950-talet.</p>' +
         '<p class="food">🍿 God mat och dryck i bistron, perfekt före eller efter filmen.</p>' +
         '<p class="addr">Hägerstensvägen 100 A · T-bana Aspudden</p></div>' +
-      '<div class="notes rv" style="--d:4.1s"><p>Biljetterna kan bytas till andra biljetter.</p><button type="button" class="osa" aria-label="OSA snarast! Visa telefonnummer">OSA snarast!</button></div>';
+      '<div class="notes rv" style="--d:4.1s"><p>Biljetterna kan bytas till andra biljetter.</p><button type="button" class="osa" aria-label="OSA snarast! Visa telefonnummer">OSA snarast!</button></div>' + catStageHTML();
     el.querySelector(".osa").addEventListener("click", showOsa);
+    el.querySelector(".cat-stage").addEventListener("click", function (e) {
+      var c = e.target.closest ? e.target.closest("svg.cat") : null;
+      if (!c) return;
+      Sfx.meow(0.8 + Math.random() * 0.6);
+      c.classList.remove("hopping"); void c.getBoundingClientRect(); c.classList.add("hopping");
+    });
   }});
 
   /* ---------- Helpers & engine ---------- */
@@ -1816,6 +1914,17 @@
         '<path d="M115 28 L119 30 L114 32 Z" fill="#f08aa0"/>' +
         '<path d="M112 32 L120 36 M110 34 L118 41" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>' +
       '</g>' +
+    '</svg>' +
+    '<svg class="mouse" viewBox="0 0 60 36" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+      '<path class="mtail" d="M10 22 C 2 22, 0 10, 6 6" fill="none" stroke="#e8a0b0" stroke-width="2.6" stroke-linecap="round"/>' +
+      '<g class="mleg a"><ellipse cx="22" cy="31" rx="4.5" ry="3" fill="#7d8798"/></g>' +
+      '<g class="mleg b"><ellipse cx="38" cy="31" rx="4.5" ry="3" fill="#7d8798"/></g>' +
+      '<ellipse cx="29" cy="22" rx="20" ry="11" fill="#a9b3c2" stroke="#5c6575" stroke-width="2"/>' +
+      '<circle cx="46" cy="14" r="8.5" fill="#a9b3c2" stroke="#5c6575" stroke-width="2"/>' +
+      '<circle cx="42" cy="7" r="5" fill="#f6a5b4" stroke="#5c6575" stroke-width="1.8"/>' +
+      '<circle cx="48.5" cy="12.5" r="1.8" fill="#111"/>' +
+      '<circle cx="54" cy="15" r="1.7" fill="#e87a95"/>' +
+      '<path d="M52 16 L58 14 M52 17.5 L58 19" stroke="#5c6575" stroke-width="1" stroke-linecap="round"/>' +
     '</svg></button>';
   document.body.appendChild(runway);
   /* ---------- Hidden test shortcuts: click the running cat 8 times quickly ---------- */
@@ -1847,7 +1956,8 @@
   }
   function hideTestMenu() { testMenu.classList.remove("show"); }
   testMenu.querySelector("#tm-close").addEventListener("click", hideTestMenu);
-  testMenu.addEventListener("click", function (e) { if (e.target === testMenu) hideTestMenu(); });
+  var tmOpenedAt = 0;
+  testMenu.addEventListener("click", function (e) { if (e.target === testMenu && Date.now() - tmOpenedAt > 1500) hideTestMenu(); });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") hideTestMenu(); });
 
   var runnerBtn = document.getElementById("runner");
@@ -1872,7 +1982,24 @@
   runnerBtn.addEventListener("focus", showRunnerTip);
   runnerBtn.addEventListener("blur", hideRunnerTip);
   var runnerClicks = [], heldTimer = null;
-  runnerBtn.addEventListener("click", function () {
+  var fleeTimer = null;
+  function mouseFlee(m) {
+    if (m.classList.contains("fleeing")) return;
+    var r = m.getBoundingClientRect();
+    m.style.setProperty("--flee", Math.max(200, window.innerWidth - r.left + 80) + "px");
+    m.classList.remove("returning");
+    m.classList.add("fleeing");
+    Sfx.squeak(); Sfx.swipe();
+    clearTimeout(fleeTimer);
+    fleeTimer = setTimeout(function () {
+      m.classList.remove("fleeing");
+      m.classList.add("returning");
+      setTimeout(function () { m.classList.remove("returning"); }, 700);
+    }, 3500);
+  }
+  runnerBtn.addEventListener("click", function (e) {
+    var mouse = e.target.closest ? e.target.closest(".mouse") : null;
+    if (mouse) { mouseFlee(mouse); return; }
     var now = Date.now();
     runnerClicks.push(now);
     runnerClicks = runnerClicks.filter(function (t) { return now - t < 5000; });
@@ -1884,12 +2011,13 @@
       runnerClicks = [];
       Sfx.win();
       buildTestList();
+      tmOpenedAt = Date.now();
       testMenu.classList.add("show");
       var here = tmList.querySelector(".here");
       if (here) here.scrollIntoView({ block: "center" });
       return;
     }
-    Sfx.meow();
+    if (e.target.closest && e.target.closest(".mouse")) Sfx.squeak(); else Sfx.meow();
     popup.classList.remove("show");
     show(0);
   });
