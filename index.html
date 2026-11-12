@@ -416,6 +416,16 @@
   .tm-list .btn { padding: .5rem 1rem; font-size: .95rem; text-align: left; border-radius: 12px; flex: none; }
   .tm-list .btn.here { outline: 3px solid var(--frost); outline-offset: 1px; }
 
+  /* Pulsing cartoon arrow pointing at the sound icon (first slide) */
+  .sound-hint { position: fixed; z-index: 20; top: calc(env(safe-area-inset-top, 0px) + 58px); right: max(4px, env(safe-area-inset-right, 0px)); width: 190px; display: flex; flex-direction: column; align-items: flex-end; pointer-events: none; animation: hintpulse .7s ease-in-out infinite alternate; }
+  .sound-hint[hidden] { display: none; }
+  .sh-arrow { width: 84px; height: auto; margin-right: 4px; overflow: visible; }
+  .sh-text { margin-top: 2px; background: #fff4dc; color: #b3262d; border: 3px solid #2a1630; border-radius: 14px; padding: .3rem .8rem; font-family: "Cooper Black", "Rockwell Extra Bold", "Rockwell", "Arial Rounded MT Bold", Georgia, serif; font-weight: 900; font-size: 1.15rem; transform: rotate(-3deg); box-shadow: 0 4px 0 rgba(0,0,0,.35); white-space: nowrap; }
+  .sh-pupil { animation: pupils .9s ease-in-out infinite alternate; }
+  @keyframes hintpulse { from { transform: translate(0, 6px) scale(.96); } to { transform: translate(0, -6px) scale(1.07); } }
+  @keyframes pupils { from { transform: translate(-1px, 1px); } to { transform: translate(1px, -2px); } }
+  @media (prefers-reduced-motion: reduce) { .sound-hint, .sh-pupil { animation: none; } }
+
   /* Mute button (all slides) */
   #mute { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 8px); right: max(8px, env(safe-area-inset-right, 0px)); z-index: 60; width: 44px; height: 44px; padding: 0; border-radius: 50%; border: 2px solid var(--frost-dim); background: rgba(14,26,48,.75); color: var(--frost); display: flex; align-items: center; justify-content: center; }
   #mute svg { width: 24px; height: 24px; }
@@ -578,7 +588,8 @@
   /* ---------- Sound: synthesized music + effects (Web Audio, no audio files) ---------- */
   var Sfx = (function () {
     var ctx = null, master, musicBus, sfxBus, musicSend, noiseBuf, timer = null, timers = [];
-    var muted = false, onchange = null;
+    var muted = false, listeners = [];
+    function notify() { listeners.forEach(function (f) { f(muted); }); }
     try { muted = localStorage.getItem("presentMuted") === "1"; } catch (e) {}
 
     function midi(n) { return 440 * Math.pow(2, (n - 69) / 12); }
@@ -697,12 +708,13 @@
       nextT = T() + 0.25;
       timer = setInterval(sched, 100);
       if (ctx.state === "suspended") ctx.resume();
+      notify();
     }
     function setMuted(m) {
       muted = m;
       try { localStorage.setItem("presentMuted", m ? "1" : "0"); } catch (e) {}
       if (ctx) master.gain.setTargetAtTime(m ? 0 : 1, T(), 0.05);
-      if (onchange) onchange(m);
+      notify();
     }
     function duck(sec) {
       if (!ok()) return;
@@ -909,7 +921,10 @@
       unlock: unlock, slide: slide, duck: duck,
       toggle: function () { setMuted(!muted); },
       isMuted: function () { return muted; },
-      onchange: function (fn) { onchange = fn; }
+      onchange: function (fn) { listeners.push(fn); },
+      isReady: function () { return !!ctx; },
+      isOn: function () { return !!ctx && !muted; },
+      setMuted: setMuted
     };
     Object.keys(fx).forEach(function (k) { api[k] = fx[k]; });
     return api;
@@ -917,18 +932,20 @@
 
   // Browsers only allow sound after a tap, so the first tap starts the audio.
   document.addEventListener("pointerdown", function (e) {
-    Sfx.unlock();
     var b = e.target.closest ? e.target.closest("button, a.btn") : null;
-    if (b && b.id !== "mute") Sfx.tap();
+    if (b && b.id === "mute") return;
+    Sfx.unlock();
+    if (b) Sfx.tap();
   }, true);
-  document.addEventListener("keydown", function () { Sfx.unlock(); }, true);
+  document.addEventListener("keydown", function (e) { if (e.target && e.target.id === "mute") return; Sfx.unlock(); }, true);
 
   // Mute button, on every slide
   var muteBtn = document.createElement("button");
   muteBtn.id = "mute";
   muteBtn.type = "button";
   muteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path class="waves" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/><path class="cross" d="M16 9l5 6M21 9l-5 6"/></svg>';
-  function paintMute(m) {
+  function paintMute() {
+    var m = !Sfx.isOn();
     muteBtn.classList.toggle("muted", m);
     muteBtn.setAttribute("aria-pressed", m ? "true" : "false");
     var label = m ? "Sl\u00e5 p\u00e5 ljudet" : "St\u00e4ng av ljudet";
@@ -936,8 +953,10 @@
     muteBtn.title = label;
   }
   Sfx.onchange(paintMute);
-  paintMute(Sfx.isMuted());
-  muteBtn.addEventListener("click", function () { Sfx.toggle(); });
+  paintMute();
+  muteBtn.addEventListener("click", function () {
+    if (!Sfx.isReady()) { Sfx.unlock(); Sfx.setMuted(false); } else { Sfx.toggle(); }
+  });
   document.body.appendChild(muteBtn);
 
 
@@ -1119,6 +1138,22 @@
   slides.push({ build: function (el, go, goTo) {
     el.setAttribute("data-label", "Start");
     el.appendChild(html(catSVG({ big: true })));
+    var hint = html('<div class="sound-hint" aria-hidden="true">' +
+      '<svg class="sh-arrow" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">' +
+        '<path d="M20 112 C 8 72, 36 62, 64 42" fill="none" stroke="#fff4dc" stroke-width="30" stroke-linecap="round"/>' +
+        '<path d="M20 112 C 8 72, 36 62, 64 42" fill="none" stroke="#2a1630" stroke-width="23" stroke-linecap="round"/>' +
+        '<path d="M20 112 C 8 72, 36 62, 64 42" fill="none" stroke="#ffd23f" stroke-width="16" stroke-linecap="round"/>' +
+        '<polygon points="80,0 44,40 100,48" fill="#fff4dc" stroke="#fff4dc" stroke-width="11" stroke-linejoin="round"/>' +
+        '<polygon points="80,0 44,40 100,48" fill="#ffd23f" stroke="#2a1630" stroke-width="5" stroke-linejoin="round"/>' +
+        '<g class="sh-eyes"><circle cx="70" cy="28" r="7.5" fill="#fff" stroke="#2a1630" stroke-width="2.5"/><circle cx="84" cy="33" r="7.5" fill="#fff" stroke="#2a1630" stroke-width="2.5"/>' +
+        '<circle class="sh-pupil" cx="71" cy="25.5" r="3.2" fill="#111"/><circle class="sh-pupil" cx="85" cy="30.5" r="3.2" fill="#111"/></g>' +
+      '</svg>' +
+      '<div class="sh-text">Sl\u00e5 p\u00e5 ljud!</div></div>');
+    el.appendChild(hint);
+    function syncHint() { hint.hidden = Sfx.isOn(); }
+    Sfx.onchange(syncHint);
+    el._reset = syncHint;
+    syncHint();
     var b = html('<button class="btn start-btn">Starta</button>');
     b.addEventListener("click", function () { Sfx.start(); go(); });
     el.appendChild(b);
